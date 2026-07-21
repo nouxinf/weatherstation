@@ -1,8 +1,12 @@
+import time
+from machine import I2C
 from breakout_bme280 import BreakoutBME280
-from pimoroni_i2c import PimoroniI2C
+from lsm6ds3 import LSM6DS3, NORMAL_MODE_104HZ
+from breakout_ltr559 import BreakoutLTR559
 
-i2c = PimoroniI2C()
-bme = BreakoutBME280(i2c)
+bme = BreakoutBME280(I2C())
+gyro = LSM6DS3(I2C(), mode=NORMAL_MODE_104HZ)
+ltr = BreakoutLTR559(I2C())
 
 def update():
     temp, pressure, humidity = bme.read()
