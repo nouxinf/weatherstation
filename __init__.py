@@ -19,6 +19,8 @@ WHITE = color.white
 FONT = font.load("/system/assets/fonts/MonaSans-Medium.af")
 screen.font = FONT
 
+sprites = SpriteSheet("assets/spritesheet.png", 1, 3)  # remember to update row count
+
 
 def update():
     global last_read, readings
