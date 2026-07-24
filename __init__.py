@@ -19,7 +19,29 @@ WHITE = color.white
 FONT = font.load("/system/assets/fonts/MonaSans-Medium.af")
 screen.font = FONT
 
-sprites = SpriteSheet("assets/spritesheet.png", 1, 3)  # remember to update row count
+sprites = SpriteSheet(
+    f"assets/spritesheet.png", 30, 1
+)  # remember to update column count
+
+
+def temp_to_sprite(temp, low=-20, high=45, step=5, num_sprites=13):
+    temp = max(low, min(temp, high - 0.0001))
+    index = int((temp - low) // step)
+    return max(0, min(index, num_sprites - 1))
+
+
+def hum_to_sprite(hum, low=0, high=100, step=10, num_sprites=10, start_col=14):
+    hum = max(low, min(hum, high - 0.0001))
+    index = int((hum - low) // step)
+    index = max(0, min(index, num_sprites - 1))
+    return start_col + index
+
+
+def pres_to_sprite(pres, low=950, high=1050, step=14.29, num_sprites=7, start_col=24):
+    pres = max(low, min(pres, high - 0.0001))
+    index = int((pres - low) // step)
+    index = max(0, min(index, num_sprites - 1))
+    return start_col + index
 
 
 def update():
@@ -32,6 +54,7 @@ def update():
 
     temp = round(readings[0], 1)
     humidity = round(readings[2], 0)
+    pressure = round(readings[1], 2) / 100
 
     screen.pen = BACKGROUND_COLOR
     screen.clear()
@@ -42,7 +65,15 @@ def update():
     screen.pen = BACKGROUND_COLOR
     screen.shape(smaller_rectangle)
     screen.pen = WHITE
-    screen.text(f"{temp:.1f}°C", 15, 5, 20)
+    screen.text("Local sensor data", 10, 10, 15)
+    screen.text(f"{temp:.1f}°C", 25, 25, 20)
+    screen.text(f"{humidity:.1f}%", 25, 45, 20)
+    screen.text(f"{pressure:.2f}hPa", 25, 68, 20)
+    # draw sprite
+
+    screen.blit(sprites.sprite(temp_to_sprite(temp), 0), vec2(7, 28))
+    screen.blit(sprites.sprite(hum_to_sprite(humidity), 0), vec2(7, 50))
+    screen.blit(sprites.sprite(pres_to_sprite(pressure), 0), vec2(7, 72))
 
 
 run(update)
