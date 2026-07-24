@@ -5,13 +5,18 @@ from lsm6ds3 import LSM6DS3, NORMAL_MODE_104HZ
 from breakout_ltr559 import BreakoutLTR559
 import json
 
-i2c = I2C()
-bme = BreakoutBME280(i2c)
-gyro = LSM6DS3(i2c, mode=NORMAL_MODE_104HZ)
-ltr = BreakoutLTR559(i2c)
+try:
+    i2c = I2C()
+    bme = BreakoutBME280(i2c)
+    gyro = LSM6DS3(i2c, mode=NORMAL_MODE_104HZ)
+    ltr = BreakoutLTR559(i2c)
+except RuntimeError:
+    no_multisensor = True
+else:
+    no_multisensor = False
+    last_read = 0
+    readings = bme.read()
 
-last_read = 0
-readings = bme.read()
 
 # COLOR PALLETTE
 BACKGROUND_COLOR = color.rgb(59, 145, 173)
@@ -49,16 +54,17 @@ def pres_to_sprite(pres, low=950, high=1050, step=14.29, num_sprites=7, start_co
 
 
 def update():
-    global last_read, readings
-    now = time.ticks_ms()
-    if time.ticks_diff(now, last_read) > 100:  # refresh ten times a second
-        readings = bme.read()
-        last_read = now
-        print(readings)
+    if not no_multisensor:
+        global last_read, readings
+        now = time.ticks_ms()
+        if time.ticks_diff(now, last_read) > 100:  # refresh ten times a second
+            readings = bme.read()
+            last_read = now
+            print(readings)
 
-    temp = round(readings[0], 1)
-    humidity = round(readings[2], 0)
-    pressure = round(readings[1], 2) / 100
+        temp = round(readings[0], 1)
+        humidity = round(readings[2], 0)
+        pressure = round(readings[1], 2) / 100
 
     # Draw UI
 
@@ -76,20 +82,21 @@ def update():
     # Display info
 
     temp_unit = options.get("tempmeasurement", "unknown")
-    if temp_unit == "F":
-        screen.text(f"{((temp * 1.8) + 32):.1f}°F", 25, 25, 20)
-    elif temp_unit == "K":
-        screen.text(f"{(temp + 273.15):.1f}°K", 25, 25, 20)
+    if not no_multisensor:
+        if temp_unit == "F":
+            screen.text(f"{((temp * 1.8) + 32):.1f}°F", 25, 25, 20)
+        elif temp_unit == "K":
+            screen.text(f"{(temp + 273.15):.1f}°K", 25, 25, 20)
+        else:
+            screen.text(f"{temp}°C", 25, 25, 20)
+        screen.text(f"{humidity:.1f}%", 25, 45, 20)
+        screen.text(f"{pressure:.2f}hPa", 25, 68, 20)
+        screen.blit(sprites.sprite(temp_to_sprite(temp), 0), vec2(7, 28))
+        screen.blit(sprites.sprite(hum_to_sprite(humidity), 0), vec2(7, 50))
+        screen.blit(sprites.sprite(pres_to_sprite(pressure), 0), vec2(7, 72))
     else:
-        screen.text(f"{temp}°C", 25, 25, 20)
-    screen.text(f"{humidity:.1f}%", 25, 45, 20)
-    screen.text(f"{pressure:.2f}hPa", 25, 68, 20)
-
+        screen.text("No sensor detected", 10, 25, 15)
     # Draw sprites
-
-    screen.blit(sprites.sprite(temp_to_sprite(temp), 0), vec2(7, 28))
-    screen.blit(sprites.sprite(hum_to_sprite(humidity), 0), vec2(7, 50))
-    screen.blit(sprites.sprite(pres_to_sprite(pressure), 0), vec2(7, 72))
 
 
 run(update)
