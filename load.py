@@ -4,7 +4,7 @@ import os, glob, shutil
 
 SOURCE_DIR = "."
 INSTALL_PATH = "F:/apps/weatherstation/"
-FILES_TO_TRANSFER = ["__init__.py", "icon.png"]
+FILES_TO_TRANSFER = ["__init__.py", "icon.png", "options.json"]
 DIRS_TO_TRANSFER = ["assets"]
 
 if os.path.isdir(INSTALL_PATH):

@@ -3,6 +3,7 @@ from machine import I2C
 from breakout_bme280 import BreakoutBME280
 from lsm6ds3 import LSM6DS3, NORMAL_MODE_104HZ
 from breakout_ltr559 import BreakoutLTR559
+import json
 
 i2c = I2C()
 bme = BreakoutBME280(i2c)
@@ -22,6 +23,9 @@ screen.font = FONT
 sprites = SpriteSheet(
     f"assets/spritesheet.png", 30, 1
 )  # remember to update column count
+
+with open("options.json") as f:
+    options = json.load(f)
 
 
 def temp_to_sprite(temp, low=-20, high=45, step=5, num_sprites=13):
@@ -56,6 +60,8 @@ def update():
     humidity = round(readings[2], 0)
     pressure = round(readings[1], 2) / 100
 
+    # Draw UI
+
     screen.pen = BACKGROUND_COLOR
     screen.clear()
     screen.pen = color.white
@@ -66,10 +72,20 @@ def update():
     screen.shape(smaller_rectangle)
     screen.pen = WHITE
     screen.text("Local sensor data", 10, 10, 15)
-    screen.text(f"{temp:.1f}°C", 25, 25, 20)
+
+    # Display info
+
+    temp_unit = options.get("tempmeasurement", "unknown")
+    if temp_unit == "F":
+        screen.text(f"{((temp * 1.8) + 32):.1f}°F", 25, 25, 20)
+    elif temp_unit == "K":
+        screen.text(f"{(temp + 273.15):.1f}°K", 25, 25, 20)
+    else:
+        screen.text(f"{temp}°C", 25, 25, 20)
     screen.text(f"{humidity:.1f}%", 25, 45, 20)
     screen.text(f"{pressure:.2f}hPa", 25, 68, 20)
-    # draw sprite
+
+    # Draw sprites
 
     screen.blit(sprites.sprite(temp_to_sprite(temp), 0), vec2(7, 28))
     screen.blit(sprites.sprite(hum_to_sprite(humidity), 0), vec2(7, 50))
