@@ -1,3 +1,7 @@
 {
-  "tempmeasurement": "C"
+  "tempmeasurement": "C",
+  "locations": [
+    [50, 9],
+    [40, 9]
+  ]
 }
