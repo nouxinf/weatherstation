@@ -196,7 +196,7 @@ except Exception as e:
     print("An error occurred:", e)
 
 
-FONT = font.load("/system/assets/fonts/MonaSans-Medium.af")
+VECTOR_FONT = font.load("/system/assets/fonts/MonaSans-Medium.af")
 screen.font = FONT
 
 sprites = SpriteSheet(
