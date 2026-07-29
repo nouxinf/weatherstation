@@ -90,18 +90,18 @@ headers = {"User-Agent": "Weatherstation on the Tufty 2350"}
 try:
     """
     print(f"Making GET request to {url}...")
-                                       response = requests.get(url, headers=headers)
+                                                                                                                                                                                                                                                                       response = requests.get(url, headers=headers)
 
-                                       if response.status_code == 200:
-                                                                       data = response.json()
-                                                                       print(f"Success! Repo: {data['full_name']}")
-                                                                       print(f"Description: {data['description']}")
-                                                                       print(f"Stars: {data['stargazers_count']}")
-                                       else:
-                                                                       print(f"Request failed with status code: {response.status_code}")
-                                                                       print(response.text)
+                                                                                                                                                                                                                                                                       if response.status_code == 200:
+                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                       data = response.json()
+                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                       print(f"Success! Repo: {data['full_name']}")
+                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                       print(f"Description: {data['description']}")
+                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                       print(f"Stars: {data['stargazers_count']}")
+                                                                                                                                                                                                                                                                       else:
+                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                       print(f"Request failed with status code: {response.status_code}")
+                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                       print(response.text)
 
-                                       response.close()
+                                                                                                                                                                                                                                                                       response.close()
     """
     show_status("Making GET requests...")
     MIN_VALUE = -90.0
@@ -114,11 +114,19 @@ try:
             raise ValueError("Locations must be a non-empty list")
 
         for idx, entry in enumerate(locations):
-            # must be a list/tuple of exactly 2 values
-            if not isinstance(entry, (list, tuple)) or len(entry) != 2:
-                raise ValueError(f"Entry {idx} must be an array of exactly 2 values")
+            # must be a list/tuple of 2 or 3 values
+            if not isinstance(entry, (list, tuple)) or len(entry) not in (2, 3):
+                raise ValueError(f"Entry {idx} must be an array of 2 or 3 values")
 
-            val1, val2 = entry
+            val1, val2 = entry[0], entry[1]
+            nickname = None
+            if len(entry) == 3:
+                nickname = entry[2]
+                # Optional: validate that the nickname is a string
+                if not isinstance(nickname, str):
+                    raise ValueError(
+                        f"Entry {idx}: third value (nickname) must be a string"
+                    )
 
             # must be numbers within the latlon range
             if not (isinstance(val1, (int, float)) and isinstance(val2, (int, float))):
@@ -131,13 +139,55 @@ try:
 
         # if we reach here without exceptions data is valid
         print(f"Valid locations: {locations}")
+        location_names = []
+        country_names = []
         for i in locations:
             response = requests.get(
-                f"{url}?lat={i[0]}&lon={i[1]}&format=json&addressdetails=1"
+                f"{url}?lat={i[0]}&lon={i[1]}&format=json&addressdetails=1",
+                headers=headers,
             )
-            if response.statuscode == 200:
+            if response.status_code == 200:
                 data = response.json()
                 print(data)
+                address_data = data["address"]
+                # find the smallest settlement type if possible
+                specific_keys = ["neighbourhood", "quarter", "suburb"]
+                found_specific = None
+                for key in specific_keys:
+                    value = address_data.get(key)
+                    if value and value.strip():
+                        found_specific = value
+                        break
+                # find more broader settlement type if possible
+                parent_keys = ["hamlet", "village", "town", "city", "municipality"]
+                found_parent = None
+                for key in parent_keys:
+                    value = address_data.get(key)
+                    if value and value.strip():
+                        found_parent = value
+                        break
+
+                combined_location = None
+                if found_specific and found_parent and found_specific != found_parent:
+                    combined_location = f"{found_specific}, {found_parent}"
+                elif found_specific:
+                    combined_location = found_specific
+                elif found_parent:
+                    combined_location = found_parent
+                else:
+                    fallback_keys = ["county", "state", "country"]
+                    for key in fallback_keys:
+                        value = address_data.get(key)
+                        if value and value.strip():
+                            combined_location = value
+                            break
+                if combined_location:
+                    location_names.append(combined_location)
+
+                if address_data.get("country"):
+                    country_names.append(address_data["country"])
+            else:
+                print(f"Failed with status {response.status_code}, {response.text}")
 
     except (KeyError, ValueError) as e:
         show_status("Failed to get locations")
@@ -256,7 +306,7 @@ def update():
         screen.pen = BACKGROUND_COLOR
         screen.shape(smaller_rectangle)
         screen.pen = WHITE
-        screen.text(f"Placeholder {options.get("locations")}", 10, 10, 15)
+        screen.text(f"{location_names[current_screen - 1]}", 10, 10, 15)
     else:
         screen.pen = BACKGROUND_COLOR
         screen.clear()
