@@ -88,21 +88,6 @@ url = "https://nominatim.openstreetmap.org/reverse"
 headers = {"User-Agent": "Weatherstation on the Tufty 2350"}
 
 try:
-    """
-    print(f"Making GET request to {url}...")
-                                                                                                                                                                                                                                                                       response = requests.get(url, headers=headers)
-
-                                                                                                                                                                                                                                                                       if response.status_code == 200:
-                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                       data = response.json()
-                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                       print(f"Success! Repo: {data['full_name']}")
-                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                       print(f"Description: {data['description']}")
-                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                       print(f"Stars: {data['stargazers_count']}")
-                                                                                                                                                                                                                                                                       else:
-                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                       print(f"Request failed with status code: {response.status_code}")
-                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                       print(response.text)
-
-                                                                                                                                                                                                                                                                       response.close()
-    """
     show_status("Making GET requests...")
     MIN_VALUE = -90.0
     MAX_VALUE = 90.0
@@ -197,7 +182,6 @@ except Exception as e:
 
 
 VECTOR_FONT = font.load("/system/assets/fonts/MonaSans-Medium.af")
-screen.font = FONT
 
 sprites = SpriteSheet(
     f"assets/spritesheet.png", 30, 1
@@ -249,9 +233,43 @@ def move_current_screen():
     # print(screens)
 
 
+def wrap_text(surface, message, max_width, size=None):
+    words = message.split(" ")
+    lines = []
+    current = ""
+
+    for word in words:
+        candidate = word if not current else f"{current} {word}"
+        if size is not None:
+            w, h = surface.measure_text(candidate, size)
+        else:
+            w, h = surface.measure_text(candidate)
+
+        if w <= max_width or not current:
+            current = candidate
+        else:
+            lines.append(current)
+            current = word
+
+    if current:
+        lines.append(current)
+
+    return lines
+
+
+def draw_wrapped_text(surface, message, x, y, max_width, line_height, size=None):
+    lines = wrap_text(surface, message, max_width, size)
+    for i, line in enumerate(lines):
+        if size is not None:
+            surface.text(line, x, y + i * line_height, size)
+        else:
+            surface.text(line, x, y + i * line_height)
+
+
 def update():
     move_current_screen()
     if current_screen == 0:
+        screen.font = VECTOR_FONT
         if not no_multisensor:
             global last_read, readings
             now = time.ticks_ms()
@@ -297,6 +315,7 @@ def update():
         else:
             screen.text("No sensor detected", 10, 25, 15)
     elif current_screen != 0 and current_screen <= len(screens):
+        screen.font = rom_font.yolk
         screen.pen = BACKGROUND_COLOR
         screen.clear()
         screen.pen = color.white
@@ -306,8 +325,16 @@ def update():
         screen.pen = BACKGROUND_COLOR
         screen.shape(smaller_rectangle)
         screen.pen = WHITE
-        screen.text(f"{location_names[current_screen - 1]}", 10, 10, 15)
+        draw_wrapped_text(
+            screen,
+            f"{location_names[current_screen - 1]}",
+            20,
+            10,
+            max_width=100,
+            line_height=7,
+        )
     else:
+        screen.font = VECTOR_FONT
         screen.pen = BACKGROUND_COLOR
         screen.clear()
         screen.pen = color.white
