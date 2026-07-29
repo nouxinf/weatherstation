@@ -91,7 +91,7 @@ try:
     show_status("Making GET requests...")
     MIN_VALUE = -90.0
     MAX_VALUE = 90.0
-
+    nicknames = []
     try:
         locations = options["locations"]
 
@@ -104,14 +104,15 @@ try:
                 raise ValueError(f"Entry {idx} must be an array of 2 or 3 values")
 
             val1, val2 = entry[0], entry[1]
-            nickname = None
             if len(entry) == 3:
-                nickname = entry[2]
+                nicknames.append(entry[2])
                 # Optional: validate that the nickname is a string
-                if not isinstance(nickname, str):
+                if not isinstance(entry[2], str):
                     raise ValueError(
                         f"Entry {idx}: third value (nickname) must be a string"
                     )
+            else:
+                nicknames.append(None)
 
             # must be numbers within the latlon range
             if not (isinstance(val1, (int, float)) and isinstance(val2, (int, float))):
@@ -325,14 +326,24 @@ def update():
         screen.pen = BACKGROUND_COLOR
         screen.shape(smaller_rectangle)
         screen.pen = WHITE
-        draw_wrapped_text(
-            screen,
-            f"{location_names[current_screen - 1]}",
-            20,
-            10,
-            max_width=100,
-            line_height=7,
-        )
+        if nicknames[current_screen - 1] == None:
+            draw_wrapped_text(
+                screen,
+                f"{location_names[current_screen - 1]}",
+                20,
+                10,
+                max_width=100,
+                line_height=7,
+            )
+        else:
+            draw_wrapped_text(
+                screen,
+                f"{nicknames[current_screen - 1]}",
+                20,
+                10,
+                max_width=100,
+                line_height=7,
+            )
     else:
         screen.font = VECTOR_FONT
         screen.pen = BACKGROUND_COLOR
