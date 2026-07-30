@@ -83,14 +83,15 @@ try:
 except Exception as e:
     show_status("Failed to load options.json!!")
     raise SystemExit("Failed to load options.json!!")
+show_status("Fetching locations...")
 # fetching stuff
 url = "https://nominatim.openstreetmap.org/reverse"
 headers = {"User-Agent": "Weatherstation on the Tufty 2350"}
 
 try:
     show_status("Making GET requests...")
-    MIN_VALUE = -90.0
-    MAX_VALUE = 90.0
+    LAT_MIN, LAT_MAX = -90.0, 90.0
+    LON_MIN, LON_MAX = -180.0, 180.0
     nicknames = []
     try:
         locations = options["locations"]
@@ -106,7 +107,6 @@ try:
             val1, val2 = entry[0], entry[1]
             if len(entry) == 3:
                 nicknames.append(entry[2])
-                # Optional: validate that the nickname is a string
                 if not isinstance(entry[2], str):
                     raise ValueError(
                         f"Entry {idx}: third value (nickname) must be a string"
@@ -114,16 +114,22 @@ try:
             else:
                 nicknames.append(None)
 
-            # must be numbers within the latlon range
+            # must be numbers within range
             if not (isinstance(val1, (int, float)) and isinstance(val2, (int, float))):
                 raise ValueError(f"Entry {idx} contains non-numeric values")
 
-            if not (MIN_VALUE <= val1 <= MAX_VALUE and MIN_VALUE <= val2 <= MAX_VALUE):
+            if not (LAT_MIN <= val1 <= LAT_MAX):
                 raise ValueError(
-                    f"Entry {idx} values {entry} are outside the range [{MIN_VALUE}, {MAX_VALUE}]"
+                    f"Entry {idx}: latitude {val1} is outside the range [{LAT_MIN}, {LAT_MAX}]"
+                )
+
+            if not (LON_MIN <= val2 <= LON_MAX):
+                raise ValueError(
+                    f"Entry {idx}: longitude {val2} is outside the range [{LON_MIN}, {LON_MAX}]"
                 )
 
         # if we reach here without exceptions data is valid
+        print(f"Valid locations: {locations}")
         print(f"Valid locations: {locations}")
         location_names = []
         country_names = []
@@ -181,11 +187,34 @@ try:
 except Exception as e:
     print("An error occurred:", e)
 
+show_status("Fetching weather...")
+
+weather_data = []
+
+
+def fetch_weather(locations_array=locations):
+    for i in locations_array:
+        response = requests.get(
+            f"https://api.open-meteo.com/v1/forecast?latitude={i[0]}&longitude={i[1]}&current=weather_code&timezone=auto",
+            headers=headers,
+        )
+        if response.status_code == 200:
+            data = response.json()
+            print(data)
+            weather_data.append(data["current"])
+        else:
+            raise SystemExit(
+                f"failed fetching weather with status {response.status_code}, {response.text}"
+            )
+
+
+fetch_weather()
+
 
 VECTOR_FONT = font.load("/system/assets/fonts/MonaSans-Medium.af")
 
 sprites = SpriteSheet(
-    f"assets/spritesheet.png", 30, 1
+    f"assets/spritesheet.png", 48, 1
 )  # remember to update column count
 
 
@@ -207,6 +236,40 @@ def pres_to_sprite(pres, low=950, high=1050, step=14.29, num_sprites=7, start_co
     index = int((pres - low) // step)
     index = max(0, min(index, num_sprites - 1))
     return start_col + index
+
+
+def weather_code_to_sprite(weather_code):
+    weather_code_map = {
+        0: 31,  # clear
+        1: 32,  # mostly clear
+        2: 33,  # partly cloudy
+        3: 34,  # overcast/cloudy
+        45: 35,  # fog
+        48: 36,  # icy fog
+        51: 37,  # light drizzle
+        53: 37,  # drizzle
+        55: 37,  # heavy drizzle
+        80: 38,  # light showers
+        81: 38,  # showers
+        82: 38,  # heavy showers
+        61: 39,  # light rain
+        63: 39,  # rain
+        65: 39,  # heavy rain
+        56: 40,  # light icy drizzle
+        57: 40,  # icy drizzle
+        66: 41,  # light icy rain
+        67: 41,  # icy rain
+        77: 42,  # snow grains
+        71: 43,  # light snow
+        85: 43,  # light snow showers
+        73: 44,  # snow
+        75: 45,  # heavy snow
+        86: 45,  # snow showers
+        95: 46,  # thunder storm
+        96: 47,  # thunder storm + light hail
+        99: 47,  # thunder storm + hail
+    }
+    return weather_code_map.get(weather_code, 48 - 1) - 1
 
 
 current_screen = 0
@@ -330,7 +393,7 @@ def update():
             draw_wrapped_text(
                 screen,
                 f"{location_names[current_screen - 1]}",
-                20,
+                35,
                 10,
                 max_width=100,
                 line_height=7,
@@ -339,11 +402,21 @@ def update():
             draw_wrapped_text(
                 screen,
                 f"{nicknames[current_screen - 1]}",
-                20,
+                35,
                 10,
                 max_width=100,
                 line_height=7,
             )
+        # screen.text(str(weather_data[current_screen - 1]["weather_code"]), 10, 10)
+        screen.blit(
+            sprites.sprite(
+                weather_code_to_sprite(
+                    weather_data[current_screen - 1]["weather_code"]
+                ),
+                0,
+            ),
+            vec2(10, 10),
+        )
     else:
         screen.font = VECTOR_FONT
         screen.pen = BACKGROUND_COLOR
