@@ -212,6 +212,8 @@ fetch_weather()
 
 
 VECTOR_FONT = font.load("/system/assets/fonts/MonaSans-Medium.af")
+DESERT_FONT = rom_font.desert
+YOLK_FONT = rom_font.yolk
 
 sprites = SpriteSheet(
     f"assets/spritesheet.png", 48, 1
@@ -378,8 +380,17 @@ def update():
             screen.blit(sprites.sprite(pres_to_sprite(pressure), 0), vec2(7, 72))
         else:
             screen.text("No sensor detected", 10, 25, 15)
+        # current screen / total screen count display
+        screen.font = DESERT_FONT
+        progress_text = f"{current_screen + 1}/{len(screens)}"
+        text_width_in_pixels = len(progress_text) * 9
+        screen.text(
+            progress_text,
+            ((160 - text_width_in_pixels) // 2) + 7,
+            100,
+        )
     elif current_screen != 0 and current_screen <= len(screens):
-        screen.font = rom_font.yolk
+        screen.font = YOLK_FONT
         screen.pen = BACKGROUND_COLOR
         screen.clear()
         screen.pen = color.white
@@ -417,6 +428,15 @@ def update():
             ),
             vec2(10, 10),
         )
+        # current screen / total screen count display
+        screen.font = DESERT_FONT
+        progress_text = f"{current_screen + 1}/{len(screens)}"
+        text_width_in_pixels = len(progress_text) * 9
+        screen.text(
+            progress_text,
+            ((160 - text_width_in_pixels) // 2) + 7,
+            100,
+        )
     else:
         screen.font = VECTOR_FONT
         screen.pen = BACKGROUND_COLOR
@@ -429,6 +449,15 @@ def update():
         screen.shape(smaller_rectangle)
         screen.pen = WHITE
         screen.text("Invalid screen", 10, 10, 15)
+        # current screen / total screen count display
+        screen.font = DESERT_FONT
+        progress_text = f"?/?"
+        text_width_in_pixels = len(progress_text) * 9
+        screen.text(
+            progress_text,
+            ((160 - text_width_in_pixels) // 2) + 7,
+            100,
+        )
 
 
 run(update)
