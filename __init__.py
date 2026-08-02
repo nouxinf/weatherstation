@@ -195,7 +195,7 @@ weather_data = []
 def fetch_weather(locations_array=locations):
     for i in locations_array:
         response = requests.get(
-            f"https://api.open-meteo.com/v1/forecast?latitude={i[0]}&longitude={i[1]}&current=weather_code&timezone=auto",
+            f"https://api.open-meteo.com/v1/forecast?latitude={i[0]}&longitude={i[1]}&current=weather_code,temperature_2m&timezone=auto",
             headers=headers,
         )
         if response.status_code == 200:
@@ -332,6 +332,9 @@ def draw_wrapped_text(surface, message, x, y, max_width, line_height, size=None)
             surface.text(line, x, y + i * line_height)
 
 
+temp_unit = options.get("tempmeasurement", "unknown")
+
+
 def update():
     move_current_screen()
     if current_screen == 0:
@@ -365,7 +368,6 @@ def update():
 
         # Display info
 
-        temp_unit = options.get("tempmeasurement", "unknown")
         if not no_multisensor:
             if temp_unit == "F":
                 screen.text(f"{((temp * 1.8) + 32):.1f}°F", 25, 25, 20)
@@ -428,6 +430,28 @@ def update():
             ),
             vec2(10, 10),
         )
+        screen.font = VECTOR_FONT
+        if temp_unit == "F":
+            screen.text(
+                f"{str(((weather_data[current_screen - 1]["temperature_2m"]) * 1.8) + 32)}°F",
+                10,
+                30,
+                20,
+            )
+        elif temp_unit == "K":
+            screen.text(
+                f"{str((weather_data[current_screen - 1]["temperature_2m"]) + 273.15)}°K",
+                10,
+                30,
+                20,
+            )
+        else:
+            screen.text(
+                f"{str(weather_data[current_screen - 1]["temperature_2m"])}°C",
+                10,
+                30,
+                20,
+            )
         # current screen / total screen count display
         screen.font = DESERT_FONT
         progress_text = f"{current_screen + 1}/{len(screens)}"
