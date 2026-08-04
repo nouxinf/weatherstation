@@ -195,7 +195,7 @@ weather_data = []
 def fetch_weather(locations_array=locations):
     for i in locations_array:
         response = requests.get(
-            f"https://api.open-meteo.com/v1/forecast?latitude={i[0]}&longitude={i[1]}&current=weather_code,temperature_2m&timezone=auto",
+            f"https://api.open-meteo.com/v1/forecast?latitude={i[0]}&longitude={i[1]}&current=weather_code,temperature_2m,precipitation&timezone=auto",
             headers=headers,
         )
         if response.status_code == 200:
@@ -216,7 +216,7 @@ DESERT_FONT = rom_font.desert
 YOLK_FONT = rom_font.yolk
 
 sprites = SpriteSheet(
-    f"assets/spritesheet.png", 48, 1
+    f"assets/spritesheet.png", 57, 1
 )  # remember to update column count
 
 
@@ -272,6 +272,16 @@ def weather_code_to_sprite(weather_code):
         99: 47,  # thunder storm + hail
     }
     return weather_code_map.get(weather_code, 48 - 1) - 1
+
+
+def precipitation_to_sprite(mm):
+    sprite_start = 49
+    level = 0
+    rain_thresholds = [0, 0.1, 0.5, 2, 4, 8, 15, 25, 50]
+    for threshold in rain_thresholds:
+        if mm >= threshold:
+            level += 1
+    return sprite_start + level - 1
 
 
 current_screen = 0
@@ -391,7 +401,7 @@ def update():
             ((160 - text_width_in_pixels) // 2) + 7,
             100,
         )
-    elif current_screen != 0 and current_screen <= len(screens):
+    elif current_screen != 0 and current_screen <= len(screens):  # internet weather
         screen.font = YOLK_FONT
         screen.pen = BACKGROUND_COLOR
         screen.clear()
@@ -430,28 +440,46 @@ def update():
             ),
             vec2(10, 10),
         )
+        screen.blit(
+            sprites.sprite(
+                temp_to_sprite(weather_data[current_screen - 1]["temperature_2m"]), 0
+            ),
+            vec2(5, 33),
+        )
+        screen.blit(
+            sprites.sprite(
+                precipitation_to_sprite(
+                    weather_data[current_screen - 1]["precipitation"]
+                ),
+                0,
+            ),
+            vec2(7, 53),
+        )
         screen.font = VECTOR_FONT
         if temp_unit == "F":
             screen.text(
                 f"{str(((weather_data[current_screen - 1]["temperature_2m"]) * 1.8) + 32)}°F",
-                10,
+                30,
                 30,
                 20,
             )
         elif temp_unit == "K":
             screen.text(
                 f"{str((weather_data[current_screen - 1]["temperature_2m"]) + 273.15)}°K",
-                10,
+                30,
                 30,
                 20,
             )
         else:
             screen.text(
                 f"{str(weather_data[current_screen - 1]["temperature_2m"])}°C",
-                10,
+                30,
                 30,
                 20,
             )
+        screen.text(
+            f"{str(weather_data[current_screen - 1]["precipitation"])}mm", 30, 50, 20
+        )
         # current screen / total screen count display
         screen.font = DESERT_FONT
         progress_text = f"{current_screen + 1}/{len(screens)}"
