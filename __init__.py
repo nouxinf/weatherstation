@@ -226,7 +226,7 @@ def temp_to_sprite(temp, low=-20, high=45, step=5, num_sprites=13):
     return max(0, min(index, num_sprites - 1))
 
 
-def hum_to_sprite(hum, low=0, high=100, step=10, num_sprites=10, start_col=14):
+def hum_to_sprite(hum, low=0, high=100, step=10, num_sprites=10, start_col=13):
     hum = max(low, min(hum, high - 0.0001))
     index = int((hum - low) // step)
     index = max(0, min(index, num_sprites - 1))
@@ -275,13 +275,13 @@ def weather_code_to_sprite(weather_code):
 
 
 def precipitation_to_sprite(mm):
-    sprite_start = 49
+    sprite_start = 48
     level = 0
-    rain_thresholds = [0, 0.1, 0.5, 2, 4, 8, 15, 25, 50]
+    rain_thresholds = [0.1, 0.5, 2, 4, 8, 15, 25, 50]
     for threshold in rain_thresholds:
         if mm >= threshold:
             level += 1
-    return sprite_start + level - 1
+    return sprite_start + level
 
 
 current_screen = 0
