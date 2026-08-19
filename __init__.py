@@ -7,13 +7,24 @@ import json
 import network
 import urequests as requests
 
-# COLOR PALLETTE
+"""
+╔════════════════════════════════════╗
+║          COLOUR PALLETTE           ║
+╚════════════════════════════════════╝
+"""
+
 BACKGROUND_COLOR = color.rgb(59, 145, 173)
 BLACK = color.black
 WHITE = color.white
 
 screen.pen = BLACK
 screen.clear()
+
+"""
+╔════════════════════════════════════╗
+║              LOGGING               ║
+╚════════════════════════════════════╝
+"""
 
 messages = []
 
@@ -33,12 +44,17 @@ def show_status(message):
     screen.text(message, 10, new_y)
 
     messages.append(message)
-    display.update()
+    badge.update()
 
+
+"""
+╔════════════════════════════════════╗
+║         INITIALISE SENSOR          ║
+╚════════════════════════════════════╝
+"""
 
 show_status("Loading sensor...")
 
-# try to initialise the multisensor
 try:
     i2c = I2C()
     bme = BreakoutBME280(i2c)
@@ -55,6 +71,13 @@ if no_multisensor:
     show_status("No multisensor found")
 else:
     show_status("Multisensor found")
+
+"""
+╔════════════════════════════════════╗
+║             NETWORKING             ║
+╚════════════════════════════════════╝
+"""
+
 show_status("Finding Wi-Fi details...")
 try:
     from secrets import WIFI_SSID, WIFI_PASSWORD
@@ -76,6 +99,13 @@ if not wlan.isconnected():
 
 print("Connected to Wi-Fi:", wlan.ipconfig("addr4"))
 show_status("Connected")
+
+"""
+╔════════════════════════════════════╗
+║          LOAD PREFERENCES          ║
+╚════════════════════════════════════╝
+"""
+
 show_status("Loading options.json")
 try:
     with open("options.json") as f:
@@ -84,12 +114,18 @@ except Exception as e:
     show_status("Failed to load options.json!!")
     raise SystemExit("Failed to load options.json!!")
 show_status("Fetching locations...")
-# fetching stuff
+
+"""
+╔════════════════════════════════════╗
+║        FETCHING PLACE NAMES        ║
+╚════════════════════════════════════╝
+"""
+
 url = "https://nominatim.openstreetmap.org/reverse"
 headers = {"User-Agent": "Weatherstation on the Tufty 2350"}
 
 try:
-    show_status("Making GET requests...")
+    show_status("Fetching location names")
     LAT_MIN, LAT_MAX = -90.0, 90.0
     LON_MIN, LON_MAX = -180.0, 180.0
     nicknames = []
@@ -129,7 +165,6 @@ try:
                 )
 
         # if we reach here without exceptions data is valid
-        print(f"Valid locations: {locations}")
         print(f"Valid locations: {locations}")
         location_names = []
         country_names = []
@@ -187,6 +222,12 @@ try:
 except Exception as e:
     print("An error occurred:", e)
 
+"""
+╔════════════════════════════════════╗
+║       FETCHING WEATHER DATA        ║
+╚════════════════════════════════════╝
+"""
+
 show_status("Fetching weather...")
 
 weather_data = []
@@ -212,12 +253,18 @@ fetch_weather()
 
 
 VECTOR_FONT = font.load("/system/assets/fonts/MonaSans-Medium.af")
-DESERT_FONT = rom_font.desert
-YOLK_FONT = rom_font.yolk
+DESERT_FONT = font.desert
+YOLK_FONT = font.yolk
 
-sprites = SpriteSheet(
-    f"assets/spritesheet.png", 57, 1
+sprites = image.load("assets/spritesheet.png").spritesheet(
+    65, 1
 )  # remember to update column count
+
+"""
+╔════════════════════════════════════╗
+║          HELPER FUNCTIONS          ║
+╚════════════════════════════════════╝
+"""
 
 
 def temp_to_sprite(temp, low=-20, high=45, step=5, num_sprites=13):
@@ -344,9 +391,20 @@ def draw_wrapped_text(surface, message, x, y, max_width, line_height, size=None)
 
 temp_unit = options.get("tempmeasurement", "unknown")
 
+"""
+╔════════════════════════════════════╗
+║             MAIN LOOP              ║
+╚════════════════════════════════════╝
+"""
+
 
 def update():
     move_current_screen()
+    """
+	╔════════════════════════════════════╗
+	║           SENSOR SCREEN            ║
+	╚════════════════════════════════════╝
+	"""
     if current_screen == 0:
         screen.font = VECTOR_FONT
         if not no_multisensor:
@@ -401,7 +459,12 @@ def update():
             ((160 - text_width_in_pixels) // 2) + 7,
             100,
         )
-    elif current_screen != 0 and current_screen <= len(screens):  # internet weather
+    elif current_screen != 0 and current_screen <= len(screens):
+        """
+        ╔════════════════════════════════════╗
+        ║          INTERNET WEATHER          ║
+        ╚════════════════════════════════════╝
+        """
         screen.font = YOLK_FONT
         screen.pen = BACKGROUND_COLOR
         screen.clear()
@@ -490,6 +553,11 @@ def update():
             100,
         )
     else:
+        """
+        ╔════════════════════════════════════════════════╗
+        ║ ERROR SCREEN - This shouldn't display normally ║
+        ╚════════════════════════════════════════════════╝
+        """
         screen.font = VECTOR_FONT
         screen.pen = BACKGROUND_COLOR
         screen.clear()
