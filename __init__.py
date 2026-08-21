@@ -7,6 +7,13 @@ import json
 import network
 import urequests as requests
 
+try:
+    from typing import TYPE_CHECKING
+except ImportError:
+    TYPE_CHECKING = False
+
+if TYPE_CHECKING:
+    from badgeware import *  # type: ignore
 """
 ╔════════════════════════════════════╗
 ║          COLOUR PALLETTE           ║
@@ -453,11 +460,8 @@ def update():
         # current screen / total screen count display
         screen.font = DESERT_FONT
         progress_text = f"{current_screen + 1}/{len(screens)}"
-        text_width_in_pixels = len(progress_text) * 9
         screen.text(
-            progress_text,
-            ((160 - text_width_in_pixels) // 2) + 7,
-            100,
+            progress_text, rect(0, 100, 160, 10), align=(image.CENTER, image.MIDDLE)
         )
     elif current_screen != 0 and current_screen <= len(screens):
         """
@@ -476,22 +480,16 @@ def update():
         screen.shape(smaller_rectangle)
         screen.pen = WHITE
         if nicknames[current_screen - 1] == None:
-            draw_wrapped_text(
-                screen,
+            screen.text(
                 f"{location_names[current_screen - 1]}",
-                35,
-                10,
-                max_width=100,
-                line_height=7,
+                rect(35, 10, 100, 30),
+                overflow=image.ELLIPSES,
             )
         else:
-            draw_wrapped_text(
-                screen,
+            screen.text(
                 f"{nicknames[current_screen - 1]}",
-                35,
-                10,
-                max_width=100,
-                line_height=7,
+                rect(35, 10, 100, 30),
+                overflow=image.ELLIPSES,
             )
         # screen.text(str(weather_data[current_screen - 1]["weather_code"]), 10, 10)
         screen.blit(
@@ -507,7 +505,7 @@ def update():
             sprites.sprite(
                 temp_to_sprite(weather_data[current_screen - 1]["temperature_2m"]), 0
             ),
-            vec2(5, 33),
+            vec2(7, 33),
         )
         screen.blit(
             sprites.sprite(
@@ -546,11 +544,8 @@ def update():
         # current screen / total screen count display
         screen.font = DESERT_FONT
         progress_text = f"{current_screen + 1}/{len(screens)}"
-        text_width_in_pixels = len(progress_text) * 9
         screen.text(
-            progress_text,
-            ((160 - text_width_in_pixels) // 2) + 7,
-            100,
+            progress_text, rect(0, 100, 160, 10), align=(image.CENTER, image.MIDDLE)
         )
     else:
         """
@@ -572,11 +567,8 @@ def update():
         # current screen / total screen count display
         screen.font = DESERT_FONT
         progress_text = f"?/?"
-        text_width_in_pixels = len(progress_text) * 9
         screen.text(
-            progress_text,
-            ((160 - text_width_in_pixels) // 2) + 7,
-            100,
+            progress_text, rect(0, 100, 160, 10), align=(image.CENTER, image.MIDDLE)
         )
 
 
