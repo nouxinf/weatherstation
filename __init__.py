@@ -37,6 +37,9 @@ messages = []
 
 
 def show_status(message):
+    """
+    Logging function in the early stages of loading. Outputs logs to the screen
+    """
     global messages
     screen.pen = BLACK
     screen.clear()
@@ -241,9 +244,12 @@ weather_data = []
 
 
 def fetch_weather(locations_array=locations):
+    """
+    Fetches weather from the internet.
+    """
     for i in locations_array:
         response = requests.get(
-            f"https://api.open-meteo.com/v1/forecast?latitude={i[0]}&longitude={i[1]}&current=weather_code,temperature_2m,precipitation&timezone=auto",
+            f"https://api.open-meteo.com/v1/forecast?latitude={i[0]}&longitude={i[1]}&current=weather_code,temperature_2m,precipitation,wind_direction_10m&timezone=auto",
             headers=headers,
         )
         if response.status_code == 200:
@@ -275,12 +281,18 @@ sprites = image.load("assets/spritesheet.png").spritesheet(
 
 
 def temp_to_sprite(temp, low=-20, high=45, step=5, num_sprites=13):
+    """
+    Converts temperature value to sprite
+    """
     temp = max(low, min(temp, high - 0.0001))
     index = int((temp - low) // step)
     return max(0, min(index, num_sprites - 1))
 
 
 def hum_to_sprite(hum, low=0, high=100, step=10, num_sprites=10, start_col=13):
+    """
+    Converts humidity value to sprite
+    """
     hum = max(low, min(hum, high - 0.0001))
     index = int((hum - low) // step)
     index = max(0, min(index, num_sprites - 1))
@@ -288,6 +300,9 @@ def hum_to_sprite(hum, low=0, high=100, step=10, num_sprites=10, start_col=13):
 
 
 def pres_to_sprite(pres, low=950, high=1050, step=14.29, num_sprites=7, start_col=24):
+    """
+    Converts air pressure value to sprite
+    """
     pres = max(low, min(pres, high - 0.0001))
     index = int((pres - low) // step)
     index = max(0, min(index, num_sprites - 1))
@@ -295,6 +310,9 @@ def pres_to_sprite(pres, low=950, high=1050, step=14.29, num_sprites=7, start_co
 
 
 def weather_code_to_sprite(weather_code):
+    """
+    Converts WMO weather code to sprite. These are the kind of icons you see in weather apps like cloud with sun etc.
+    """
     weather_code_map = {
         0: 31,  # clear
         1: 32,  # mostly clear
@@ -328,7 +346,22 @@ def weather_code_to_sprite(weather_code):
     return weather_code_map.get(weather_code, 48 - 1) - 1
 
 
+def wind_direction_to_sprite(wind_direction):
+    """
+    Converts wind direction to sprite. Note that there's a slight rounding error which might be a badgeware quirk.
+    """
+    wind_direction = wind_direction % 360
+    dir_sprites = [58, 59, 60, 61, 62, 63, 64, 65]
+
+    index = ((wind_direction * 2 + 45) % 720) // 90
+
+    return dir_sprites[index]
+
+
 def precipitation_to_sprite(mm):
+    """
+    Converts precipitation to sprite
+    """
     sprite_start = 48
     level = 0
     rain_thresholds = [0.1, 0.5, 2, 4, 8, 15, 25, 50]
@@ -347,6 +380,9 @@ prev_up = False
 
 
 def move_current_screen():
+    """
+    Function that runs every frame to check if button has been pressed to switch screens.
+    """
     global current_screen, prev_down, prev_up
 
     down_now = badge.pressed(BUTTON_DOWN)
@@ -406,6 +442,9 @@ temp_unit = options.get("tempmeasurement", "unknown")
 
 
 def update():
+    """
+    Main graphics loop
+    """
     move_current_screen()
     """
 	╔════════════════════════════════════╗
@@ -516,6 +555,15 @@ def update():
             ),
             vec2(7, 53),
         )
+        screen.blit(
+            sprites.sprite(
+                wind_direction_to_sprite(
+                    weather_data[current_screen - 1]["wind_direction_10m"]
+                ),
+                0,
+            ),
+            vec2(7, 73),
+        )
         screen.font = VECTOR_FONT
         if temp_unit == "F":
             screen.text(
@@ -540,6 +588,12 @@ def update():
             )
         screen.text(
             f"{str(weather_data[current_screen - 1]["precipitation"])}mm", 30, 50, 20
+        )
+        screen.text(
+            f"{str(weather_data[current_screen - 1]["wind_direction_10m"])}°",
+            30,
+            70,
+            20,
         )
         # current screen / total screen count display
         screen.font = DESERT_FONT
