@@ -350,11 +350,9 @@ def wind_direction_to_sprite(wind_direction):
     """
     Converts wind direction to sprite. Note that there's a slight rounding error which might be a badgeware quirk.
     """
-    wind_direction = wind_direction % 360
-    dir_sprites = [58, 59, 60, 61, 62, 63, 64, 65]
-
-    index = ((wind_direction * 2 + 45) % 720) // 90
-
+    wind_direction = float(wind_direction) % 360
+    dir_sprites = [57, 58, 59, 60, 61, 62, 63, 64]
+    index = int(((wind_direction * 2 + 45) % 720) // 90)
     return dir_sprites[index]
 
 
