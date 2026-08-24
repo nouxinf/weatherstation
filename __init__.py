@@ -35,6 +35,8 @@ screen.clear()
 
 messages = []
 
+no_internet = None
+
 
 def show_status(message):
     """
@@ -95,20 +97,23 @@ except ImportError:
     show_status(
         "Couldn't find Wi-Fi details, write them in secrets.py or else you won't be able to use internet"
     )
-    raise
+    no_internet = True
+try:
+    wlan = network.WLAN(network.STA_IF)
+    wlan.active(True)
+    show_status("Connecting to Wi-Fi...")
+    if not wlan.isconnected():
+        print("Connecting to Wi-Fi...")
+        wlan.connect(WIFI_SSID, WIFI_PASSWORD)
+        # Wait for connection
+        while not wlan.isconnected():
+            time.sleep(1)
 
-wlan = network.WLAN(network.STA_IF)
-wlan.active(True)
-show_status("Connecting to Wi-Fi...")
-if not wlan.isconnected():
-    print("Connecting to Wi-Fi...")
-    wlan.connect(WIFI_SSID, WIFI_PASSWORD)
-    # Wait for connection
-    while not wlan.isconnected():
-        time.sleep(1)
-
-print("Connected to Wi-Fi:", wlan.ipconfig("addr4"))
-show_status("Connected")
+    print("Connected to Wi-Fi:", wlan.ipconfig("addr4"))
+    show_status("Connected")
+except Exception as e:
+    no_internet = True
+    show_status("No Wi-fi")
 
 """
 ╔════════════════════════════════════╗
@@ -231,38 +236,38 @@ try:
         raise SystemExit
 except Exception as e:
     print("An error occurred:", e)
+    show_status("OSM.N error:", e)
+    no_internet = True
 
 """
 ╔════════════════════════════════════╗
 ║       FETCHING WEATHER DATA        ║
 ╚════════════════════════════════════╝
 """
+if not no_internet:
+    show_status("Fetching weather...")
 
-show_status("Fetching weather...")
+    weather_data = []
 
-weather_data = []
-
-
-def fetch_weather(locations_array=locations):
-    """
-    Fetches weather from the internet.
-    """
-    for i in locations_array:
-        response = requests.get(
-            f"https://api.open-meteo.com/v1/forecast?latitude={i[0]}&longitude={i[1]}&current=weather_code,temperature_2m,precipitation,wind_direction_10m&timezone=auto",
-            headers=headers,
-        )
-        if response.status_code == 200:
-            data = response.json()
-            print(data)
-            weather_data.append(data["current"])
-        else:
-            raise SystemExit(
-                f"failed fetching weather with status {response.status_code}, {response.text}"
+    def fetch_weather(locations_array=locations):
+        """
+        Fetches weather from the internet.
+        """
+        for i in locations_array:
+            response = requests.get(
+                f"https://api.open-meteo.com/v1/forecast?latitude={i[0]}&longitude={i[1]}&current=weather_code,temperature_2m,precipitation,wind_direction_10m&timezone=auto",
+                headers=headers,
             )
+            if response.status_code == 200:
+                data = response.json()
+                print(data)
+                weather_data.append(data["current"])
+            else:
+                raise SystemExit(
+                    f"failed fetching weather with status {response.status_code}, {response.text}"
+                )
 
-
-fetch_weather()
+    fetch_weather()
 
 
 VECTOR_FONT = font.load("/system/assets/fonts/MonaSans-Medium.af")
@@ -397,40 +402,12 @@ def move_current_screen():
     # print(screens)
 
 
-def wrap_text(surface, message, max_width, size=None):
-    words = message.split(" ")
-    lines = []
-    current = ""
-
-    for word in words:
-        candidate = word if not current else f"{current} {word}"
-        if size is not None:
-            w, h = surface.measure_text(candidate, size)
-        else:
-            w, h = surface.measure_text(candidate)
-
-        if w <= max_width or not current:
-            current = candidate
-        else:
-            lines.append(current)
-            current = word
-
-    if current:
-        lines.append(current)
-
-    return lines
-
-
-def draw_wrapped_text(surface, message, x, y, max_width, line_height, size=None):
-    lines = wrap_text(surface, message, max_width, size)
-    for i, line in enumerate(lines):
-        if size is not None:
-            surface.text(line, x, y + i * line_height, size)
-        else:
-            surface.text(line, x, y + i * line_height)
-
-
 temp_unit = options.get("tempmeasurement", "unknown")
+
+if no_internet == None:
+    no_internet = False
+    # no_internet = True
+    # alternate between these to debug
 
 """
 ╔════════════════════════════════════╗
@@ -445,10 +422,10 @@ def update():
     """
     move_current_screen()
     """
-	╔════════════════════════════════════╗
-	║           SENSOR SCREEN            ║
-	╚════════════════════════════════════╝
-	"""
+    ╔════════════════════════════════════╗
+    ║           SENSOR SCREEN            ║
+    ╚════════════════════════════════════╝
+    """
     if current_screen == 0:
         screen.font = VECTOR_FONT
         if not no_multisensor:
@@ -516,83 +493,90 @@ def update():
         screen.pen = BACKGROUND_COLOR
         screen.shape(smaller_rectangle)
         screen.pen = WHITE
-        if nicknames[current_screen - 1] == None:
+        if not no_internet:
+            if nicknames[current_screen - 1] == None:
+                screen.text(
+                    f"{location_names[current_screen - 1]}",
+                    rect(35, 10, 100, 30),
+                    overflow=image.ELLIPSES,
+                )
+            else:
+                screen.text(
+                    f"{nicknames[current_screen - 1]}",
+                    rect(35, 10, 100, 30),
+                    overflow=image.ELLIPSES,
+                )
+            # screen.text(str(weather_data[current_screen - 1]["weather_code"]), 10, 10)
+            screen.blit(
+                sprites.sprite(
+                    weather_code_to_sprite(
+                        weather_data[current_screen - 1]["weather_code"]
+                    ),
+                    0,
+                ),
+                vec2(10, 10),
+            )
+            screen.blit(
+                sprites.sprite(
+                    temp_to_sprite(weather_data[current_screen - 1]["temperature_2m"]),
+                    0,
+                ),
+                vec2(7, 33),
+            )
+            screen.blit(
+                sprites.sprite(
+                    precipitation_to_sprite(
+                        weather_data[current_screen - 1]["precipitation"]
+                    ),
+                    0,
+                ),
+                vec2(7, 53),
+            )
+            screen.blit(
+                sprites.sprite(
+                    wind_direction_to_sprite(
+                        weather_data[current_screen - 1]["wind_direction_10m"]
+                    ),
+                    0,
+                ),
+                vec2(7, 73),
+            )
+            screen.font = VECTOR_FONT
+            if temp_unit == "F":
+                screen.text(
+                    f"{str(((weather_data[current_screen - 1]["temperature_2m"]) * 1.8) + 32)}°F",
+                    30,
+                    30,
+                    20,
+                )
+            elif temp_unit == "K":
+                screen.text(
+                    f"{str((weather_data[current_screen - 1]["temperature_2m"]) + 273.15)}°K",
+                    30,
+                    30,
+                    20,
+                )
+            else:
+                screen.text(
+                    f"{str(weather_data[current_screen - 1]["temperature_2m"])}°C",
+                    30,
+                    30,
+                    20,
+                )
             screen.text(
-                f"{location_names[current_screen - 1]}",
-                rect(35, 10, 100, 30),
-                overflow=image.ELLIPSES,
+                f"{str(weather_data[current_screen - 1]["precipitation"])}mm",
+                30,
+                50,
+                20,
+            )
+            screen.text(
+                f"{str(weather_data[current_screen - 1]["wind_direction_10m"])}°",
+                30,
+                70,
+                20,
             )
         else:
-            screen.text(
-                f"{nicknames[current_screen - 1]}",
-                rect(35, 10, 100, 30),
-                overflow=image.ELLIPSES,
-            )
-        # screen.text(str(weather_data[current_screen - 1]["weather_code"]), 10, 10)
-        screen.blit(
-            sprites.sprite(
-                weather_code_to_sprite(
-                    weather_data[current_screen - 1]["weather_code"]
-                ),
-                0,
-            ),
-            vec2(10, 10),
-        )
-        screen.blit(
-            sprites.sprite(
-                temp_to_sprite(weather_data[current_screen - 1]["temperature_2m"]), 0
-            ),
-            vec2(7, 33),
-        )
-        screen.blit(
-            sprites.sprite(
-                precipitation_to_sprite(
-                    weather_data[current_screen - 1]["precipitation"]
-                ),
-                0,
-            ),
-            vec2(7, 53),
-        )
-        screen.blit(
-            sprites.sprite(
-                wind_direction_to_sprite(
-                    weather_data[current_screen - 1]["wind_direction_10m"]
-                ),
-                0,
-            ),
-            vec2(7, 73),
-        )
-        screen.font = VECTOR_FONT
-        if temp_unit == "F":
-            screen.text(
-                f"{str(((weather_data[current_screen - 1]["temperature_2m"]) * 1.8) + 32)}°F",
-                30,
-                30,
-                20,
-            )
-        elif temp_unit == "K":
-            screen.text(
-                f"{str((weather_data[current_screen - 1]["temperature_2m"]) + 273.15)}°K",
-                30,
-                30,
-                20,
-            )
-        else:
-            screen.text(
-                f"{str(weather_data[current_screen - 1]["temperature_2m"])}°C",
-                30,
-                30,
-                20,
-            )
-        screen.text(
-            f"{str(weather_data[current_screen - 1]["precipitation"])}mm", 30, 50, 20
-        )
-        screen.text(
-            f"{str(weather_data[current_screen - 1]["wind_direction_10m"])}°",
-            30,
-            70,
-            20,
-        )
+            screen.text("No internet", rect(35, 10, 100, 30))
         # current screen / total screen count display
         screen.font = DESERT_FONT
         progress_text = f"{current_screen + 1}/{len(screens)}"
