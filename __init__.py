@@ -66,18 +66,40 @@ def show_status(message):
 """
 
 show_status("Loading sensor...")
+last_read = 0
+readings = (0.0, 0.0, 0.0)
+bme = None
+
+
+def init_i2c():
+    try:
+        # timeout=50000 (50ms) prevents the hardware I2C from freezing the app
+        # if the sensor is partially inserted and SDA gets stuck low.
+        return I2C(timeout=50000)
+    except TypeError:
+        # fallback if the firmware's I2C wrapper doesn't accept kwargs
+        return I2C()
+    except Exception:
+        return I2C()
+
+
+# initialize the I2C bus ONCE globally to prevent hardware state machine lockups
+i2c = init_i2c()
 
 try:
-    i2c = I2C()
     bme = BreakoutBME280(i2c)
-    gyro = LSM6DS3(i2c, mode=NORMAL_MODE_104HZ)
-    ltr = BreakoutLTR559(i2c)
-except RuntimeError:
+    # gyro = LSM6DS3(i2c, mode=NORMAL_MODE_104HZ)
+    # ltr = BreakoutLTR559(i2c)
+except Exception:
     no_multisensor = True
 else:
     no_multisensor = False
     last_read = 0
-    readings = bme.read()
+    try:
+        readings = bme.read()
+    except Exception:
+        no_multisensor = True
+        bme = None
 
 if no_multisensor:
     show_status("No multisensor found")
@@ -428,19 +450,45 @@ def update():
     """
     if current_screen == 0:
         screen.font = VECTOR_FONT
-        if not no_multisensor:
-            global last_read, readings
-            now = time.ticks_ms()
-            if (
-                time.ticks_diff(now, last_read) > 100
-            ):  # refresh ten times a second, going faster makes it freeze
-                readings = bme.read()
-                last_read = now
-            # print(readings)
 
-            temp = round(readings[0], 1)
-            humidity = round(readings[2], 0)
-            pressure = round(readings[1], 2) / 100
+        try:
+            global last_read, readings, no_multisensor, i2c, bme
+            now = time.ticks_ms()
+            if time.ticks_diff(now, last_read) > 100:
+                if no_multisensor or bme is None:
+                    try:
+                        # we do NOT re-initialize I2C() here to avoid hardware state machine lockups
+                        bme = BreakoutBME280(i2c)
+                        readings = bme.read()
+                        no_multisensor = False
+                        last_read = now
+                    except Exception:
+                        no_multisensor = True
+                        bme = None
+                        last_read = now
+                else:
+                    try:
+                        readings = bme.read()
+                        last_read = now
+                    except Exception:
+                        no_multisensor = True
+                        bme = None
+                        last_read = now
+
+            if not no_multisensor and bme is not None:
+                temp = round(readings[0], 1)
+                humidity = round(readings[2], 0)
+                pressure = round(readings[1], 2) / 100
+            else:
+                temp = 0.0
+                humidity = 0.0
+                pressure = 0.0
+
+        except Exception:
+            no_multisensor = True
+            temp = 0.0
+            humidity = 0.0
+            pressure = 0.0
 
         # Draw UI
 
@@ -544,33 +592,33 @@ def update():
             screen.font = VECTOR_FONT
             if temp_unit == "F":
                 screen.text(
-                    f"{str(((weather_data[current_screen - 1]["temperature_2m"]) * 1.8) + 32)}°F",
+                    f"{str(((weather_data[current_screen - 1]['temperature_2m']) * 1.8) + 32)}°F",
                     30,
                     30,
                     20,
                 )
             elif temp_unit == "K":
                 screen.text(
-                    f"{str((weather_data[current_screen - 1]["temperature_2m"]) + 273.15)}°K",
+                    f"{str((weather_data[current_screen - 1]['temperature_2m']) + 273.15)}°K",
                     30,
                     30,
                     20,
                 )
             else:
                 screen.text(
-                    f"{str(weather_data[current_screen - 1]["temperature_2m"])}°C",
+                    f"{str(weather_data[current_screen - 1]['temperature_2m'])}°C",
                     30,
                     30,
                     20,
                 )
             screen.text(
-                f"{str(weather_data[current_screen - 1]["precipitation"])}mm",
+                f"{str(weather_data[current_screen - 1]['precipitation'])}mm",
                 30,
                 50,
                 20,
             )
             screen.text(
-                f"{str(weather_data[current_screen - 1]["wind_direction_10m"])}°",
+                f"{str(weather_data[current_screen - 1]['wind_direction_10m'])}°",
                 30,
                 70,
                 20,
