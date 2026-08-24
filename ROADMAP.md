@@ -2,7 +2,8 @@
 
 ## Features to do before `1.0`
 
-- Offline support - internet is optional just like sensor
+- ~~Offline support - internet is optional just like sensor~~
+- Recheck if multisensor is connected or disconnected every second
 - Update weather every 1 hour or on request
 - Some basic forecast information (e.g. weather icons per day of the week) in another screen
 - Web editor for `options.json` through Flask or Bun (preferrably something self contained though)
