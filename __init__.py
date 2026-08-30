@@ -23,6 +23,7 @@ if TYPE_CHECKING:
 BACKGROUND_COLOR = color.rgb(59, 145, 173)
 BLACK = color.black
 WHITE = color.white
+GREY = color.rgb(126, 129, 130)
 
 screen.pen = BLACK
 screen.clear()
@@ -266,15 +267,17 @@ except Exception as e:
 ║       FETCHING WEATHER DATA        ║
 ╚════════════════════════════════════╝
 """
+weather_data = []
+last_updated_time = ((),)
 if not no_internet:
+    rtc.time_from_ntp()
     show_status("Fetching weather...")
-
-    weather_data = []
 
     def fetch_weather(locations_array=locations):
         """
         Fetches weather from the internet.
         """
+        global weather_data, last_updated_time
         for i in locations_array:
             response = requests.get(
                 f"https://api.open-meteo.com/v1/forecast?latitude={i[0]}&longitude={i[1]}&current=weather_code,temperature_2m,precipitation,wind_direction_10m&timezone=auto",
@@ -284,6 +287,7 @@ if not no_internet:
                 data = response.json()
                 print(data)
                 weather_data.append(data["current"])
+                last_updated_time = rtc.datetime()
             else:
                 raise SystemExit(
                     f"failed fetching weather with status {response.status_code}, {response.text}"
@@ -291,6 +295,7 @@ if not no_internet:
 
     fetch_weather()
 
+fetching = False
 
 VECTOR_FONT = font.load("/system/assets/fonts/MonaSans-Medium.af")
 DESERT_FONT = font.desert
@@ -396,30 +401,41 @@ def precipitation_to_sprite(mm):
     return sprite_start + level
 
 
+def zero_pad(num):
+    return str(num).zfill(2)
+
+
 current_screen = 0
 screens = ["sensor"] + options.get("locations")
 print(screens)
 
 prev_down = False
 prev_up = False
+prev_a = False
 
 
 def move_current_screen():
     """
     Function that runs every frame to check if button has been pressed to switch screens.
     """
-    global current_screen, prev_down, prev_up
+    global current_screen, prev_down, prev_up, prev_a, fetching, weather_data
 
     down_now = badge.pressed(BUTTON_DOWN)
     up_now = badge.pressed(BUTTON_UP)
+    a_now = badge.pressed(BUTTON_A)
 
     if down_now and not prev_down:
         current_screen = (current_screen + 1) % len(screens)
-    if up_now and not prev_up:
+    elif up_now and not prev_up:
         current_screen = (current_screen - 1) % len(screens)
+    elif a_now and not prev_a:
+        if not no_internet:
+            print("Refetching weather")
+            fetching = True
 
     prev_down = down_now
     prev_up = up_now
+    prev_a = a_now
     # print(current_screen)
     # print(screens)
 
@@ -442,6 +458,7 @@ def update():
     """
     Main graphics loop
     """
+    global fetching, weather_data, last_updated_time
     move_current_screen()
     """
     ╔════════════════════════════════════╗
@@ -623,6 +640,12 @@ def update():
                 70,
                 20,
             )
+            screen.font = YOLK_FONT
+            screen.text(
+                f"Last updated: {str(last_updated_time[3]):0>2}:{str(last_updated_time[4]):0>2}",
+                10,
+                90,
+            )
         else:
             screen.text("No internet", rect(35, 10, 100, 30))
         # current screen / total screen count display
@@ -654,6 +677,33 @@ def update():
         screen.text(
             progress_text, rect(0, 100, 160, 10), align=(image.CENTER, image.MIDDLE)
         )
+    if fetching:
+        screen.font = VECTOR_FONT
+        screen.pen = WHITE
+        outline = shape.rounded_rectangle(22, 47, 115, 35, 10)
+        screen.shape(outline)
+
+        screen.pen = GREY
+        popup = shape.rounded_rectangle(25, 50, 110, 30, 10)
+        screen.shape(popup)
+
+        screen.pen = WHITE
+        screen.text(
+            "Fetching...", rect(25, 47, 110, 30), align=(image.CENTER, image.MIDDLE)
+        )
+
+        badge.update()
+
+        old_weather_data = weather_data
+        weather_data = []
+
+        try:
+            fetch_weather()
+        except Exception as e:
+            print("Refetch failed:", e)
+            weather_data = old_weather_data
+
+        fetching = False
 
 
 run(update)
