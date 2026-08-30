@@ -7,6 +7,8 @@ import json
 import network
 import urequests as requests
 
+from secrets import TIMEZONE
+
 try:
     from typing import TYPE_CHECKING
 except ImportError:
@@ -401,10 +403,6 @@ def precipitation_to_sprite(mm):
     return sprite_start + level
 
 
-def zero_pad(num):
-    return str(num).zfill(2)
-
-
 current_screen = 0
 screens = ["sensor"] + options.get("locations")
 print(screens)
@@ -458,8 +456,19 @@ def update():
     """
     Main graphics loop
     """
-    global fetching, weather_data, last_updated_time
+    global fetching, weather_data, last_updated_time, a_now
     move_current_screen()
+    if not no_internet:
+        diff_time = (rtc.datetime()[3] * 60 + rtc.datetime()[4]) - (
+            last_updated_time[3] * 60 + last_updated_time[4]
+        )
+        if diff_time < 0:
+            diff_time += 24 * 60
+
+        if diff_time >= 10:  # refreshes weather every 10 minutes
+            print("auto fetching weather")
+            fetching = True
+
     """
     ╔════════════════════════════════════╗
     ║           SENSOR SCREEN            ║
@@ -642,7 +651,7 @@ def update():
             )
             screen.font = YOLK_FONT
             screen.text(
-                f"Last updated: {str(last_updated_time[3]):0>2}:{str(last_updated_time[4]):0>2}",
+                f"Last updated: {str(last_updated_time[3] + TIMEZONE):0>2}:{str(last_updated_time[4]):0>2}",
                 10,
                 90,
             )
