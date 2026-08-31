@@ -5,7 +5,11 @@ from lsm6ds3 import LSM6DS3, NORMAL_MODE_104HZ
 from breakout_ltr559 import BreakoutLTR559
 import json
 import wifi
-import urequests as requests
+
+try:
+    import urequests as requests
+except ImportError:
+    import requests
 
 from secrets import TIMEZONE
 
@@ -262,6 +266,11 @@ except Exception as e:
     print("An error occurred:", e)
     show_status("OSM.N error:", e)
     no_internet = True
+finally:
+    try:
+        response.close()
+    except AttributeError:
+        pass
 
 """
 ╔════════════════════════════════════╗
@@ -293,6 +302,10 @@ if not no_internet:
                 raise SystemExit(
                     f"failed fetching weather with status {response.status_code}, {response.text}"
                 )
+        try:
+            response.close()
+        except AttributeError:
+            pass
 
     fetch_weather()
 
