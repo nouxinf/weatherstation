@@ -5,6 +5,11 @@ from lsm6ds3 import LSM6DS3, NORMAL_MODE_104HZ
 from breakout_ltr559 import BreakoutLTR559
 import json
 import wifi
+import os
+
+os.chdir(
+    "/system/apps/weatherstation"
+)  # changes directory to app folder to work better with emulator
 
 try:
     import urequests as requests
