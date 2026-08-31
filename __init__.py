@@ -4,7 +4,7 @@ from breakout_bme280 import BreakoutBME280
 from lsm6ds3 import LSM6DS3, NORMAL_MODE_104HZ
 from breakout_ltr559 import BreakoutLTR559
 import json
-import network
+import wifi
 import urequests as requests
 
 from secrets import TIMEZONE
@@ -123,20 +123,19 @@ except ImportError:
         "Couldn't find Wi-Fi details, write them in secrets.py or else you won't be able to use internet"
     )
     no_internet = True
-try:
-    wlan = network.WLAN(network.STA_IF)
-    wlan.active(True)
-    show_status("Connecting to Wi-Fi...")
-    if not wlan.isconnected():
-        print("Connecting to Wi-Fi...")
-        wlan.connect(WIFI_SSID, WIFI_PASSWORD)
-        # Wait for connection
-        while not wlan.isconnected():
-            time.sleep(1)
+show_status("Connecting to Wi-Fi...")
 
-    print("Connected to Wi-Fi:", wlan.ipconfig("addr4"))
+connected = False
+for attempt in range(20):
+    if wifi.connect():
+        connected = True
+        break
+    time.sleep(0.5)
+
+if connected:
+    print("Connected to Wi-Fi")
     show_status("Connected")
-except Exception as e:
+else:
     no_internet = True
     show_status("No Wi-fi")
 
