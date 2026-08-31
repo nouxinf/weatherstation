@@ -155,7 +155,7 @@ try:
         options = json.load(f)
 except Exception as e:
     show_status("Failed to load options.json!!")
-    raise SystemExit("Failed to load options.json!!")
+    raise SystemExit("Failed to load options.json!!", e)
 show_status("Fetching locations...")
 
 """
