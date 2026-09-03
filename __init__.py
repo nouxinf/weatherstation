@@ -276,6 +276,8 @@ finally:
         response.close()
     except AttributeError:
         pass
+    except NameError:
+        pass
 
 """
 ╔════════════════════════════════════╗
@@ -310,6 +312,8 @@ if not no_internet:
         try:
             response.close()
         except AttributeError:
+            pass
+        except NameError:
             pass
 
     fetch_weather()
