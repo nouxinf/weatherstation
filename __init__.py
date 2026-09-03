@@ -173,6 +173,7 @@ url = "https://nominatim.openstreetmap.org/reverse"
 headers = {"User-Agent": "Weatherstation on the Tufty 2350"}
 
 try:
+    response = None
     show_status("Fetching location names")
     LAT_MIN, LAT_MAX = -90.0, 90.0
     LON_MIN, LON_MAX = -180.0, 180.0
