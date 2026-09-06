@@ -5,7 +5,13 @@ import shutil
 SOURCE_DIR = "."
 APP_PATH = "F:/apps/"
 INSTALL_PATH = "weatherstation/"
-FILES_TO_TRANSFER = ["__init__.py", "icon.png", "options.json", "helpers.py"]
+FILES_TO_TRANSFER = [
+    "__init__.py",
+    "icon.png",
+    "options.json",
+    "helpers.py",
+    "sensor_screen.py",
+]
 DIRS_TO_TRANSFER = ["assets"]
 
 full_install_path = os.path.join(APP_PATH, INSTALL_PATH)

@@ -7,6 +7,7 @@ import json
 import wifi
 import os
 from helpers import *
+from sensor_screen import *
 
 os.chdir(
     "/system/apps/weatherstation"
@@ -32,10 +33,15 @@ if TYPE_CHECKING:
 ╚════════════════════════════════════╝
 """
 
+VECTOR_FONT = font.load("/system/assets/fonts/MonaSans-Medium.af")
+DESERT_FONT = font.desert
+YOLK_FONT = font.yolk
+
 BACKGROUND_COLOR = color.rgb(59, 145, 173)
 BLACK = color.black
 WHITE = color.white
 GREY = color.rgb(126, 129, 130)
+
 
 screen.pen = BLACK
 screen.clear()
@@ -98,6 +104,8 @@ def init_i2c():
 
 # initialize the I2C bus ONCE globally to prevent hardware state machine lockups
 i2c = init_i2c()
+
+init_sensor(i2c)
 
 try:
     bme = BreakoutBME280(i2c)
@@ -325,10 +333,6 @@ if not no_internet:
 
 fetching = False
 
-VECTOR_FONT = font.load("/system/assets/fonts/MonaSans-Medium.af")
-DESERT_FONT = font.desert
-YOLK_FONT = font.yolk
-
 sprites = image.load("assets/spritesheet.png").spritesheet(
     65, 1
 )  # remember to update column count
@@ -405,76 +409,7 @@ def update():
     ╚════════════════════════════════════╝
     """
     if current_screen == 0:
-        screen.font = VECTOR_FONT
-
-        try:
-            global last_read, readings, no_multisensor, i2c, bme
-            now = time.ticks_ms()
-            if time.ticks_diff(now, last_read) > 100:
-                if no_multisensor or bme is None:
-                    try:
-                        # we do NOT re-initialize I2C() here to avoid hardware state machine lockups
-                        bme = BreakoutBME280(i2c)
-                        readings = bme.read()
-                        no_multisensor = False
-                        last_read = now
-                    except Exception:
-                        no_multisensor = True
-                        bme = None
-                        last_read = now
-                else:
-                    try:
-                        readings = bme.read()
-                        last_read = now
-                    except Exception:
-                        no_multisensor = True
-                        bme = None
-                        last_read = now
-
-            if not no_multisensor and bme is not None:
-                temp = round(readings[0], 1)
-                humidity = round(readings[2], 0)
-                pressure = round(readings[1], 2) / 100
-            else:
-                temp = 0.0
-                humidity = 0.0
-                pressure = 0.0
-
-        except Exception:
-            no_multisensor = True
-            temp = 0.0
-            humidity = 0.0
-            pressure = 0.0
-
-        # Draw UI
-
-        screen.pen = BACKGROUND_COLOR
-        screen.clear()
-        screen.pen = color.white
-        biggest_rectangle = shape.rounded_rectangle(5, 5, 150, 110, 10)
-        smaller_rectangle = shape.rounded_rectangle(7, 7, 146, 106, 10)
-        screen.shape(biggest_rectangle)
-        screen.pen = BACKGROUND_COLOR
-        screen.shape(smaller_rectangle)
-        screen.pen = WHITE
-        screen.text("Local sensor data", 10, 10, 15)
-
-        # Display info
-
-        if not no_multisensor:
-            if temp_unit == "F":
-                screen.text(f"{((temp * 1.8) + 32):.1f}°F", 25, 25, 20)
-            elif temp_unit == "K":
-                screen.text(f"{(temp + 273.15):.1f}°K", 25, 25, 20)
-            else:
-                screen.text(f"{temp}°C", 25, 25, 20)
-            screen.text(f"{humidity:.1f}%", 25, 45, 20)
-            screen.text(f"{pressure:.2f}hPa", 25, 68, 20)
-            screen.blit(sprites.sprite(temp_to_sprite(temp), 0), vec2(7, 28))
-            screen.blit(sprites.sprite(hum_to_sprite(humidity), 0), vec2(7, 50))
-            screen.blit(sprites.sprite(pres_to_sprite(pressure), 0), vec2(7, 72))
-        else:
-            screen.text("No sensor detected", 10, 25, 15)
+        sensor_loop(temp_unit, sprites, VECTOR_FONT, BACKGROUND_COLOR, WHITE)
         # current screen / total screen count display
         screen.font = DESERT_FONT
         progress_text = f"{current_screen + 1}/{len(screens)}"
