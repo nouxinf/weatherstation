@@ -159,8 +159,9 @@ try:
     with open("options.json") as f:
         options = json.load(f)
 except Exception as e:
-    show_status("Failed to load options.json!!")
-    raise SystemExit("Failed to load options.json!!", e)
+    show_status(f"Failed to load options.json!! {e}")
+    time.sleep(3)
+    raise SystemExit(f"Failed to load options.json!! {e}")
 show_status("Fetching locations...")
 
 """
@@ -266,11 +267,12 @@ try:
                 print(f"Failed with status {response.status_code}, {response.text}")
 
     except (KeyError, ValueError) as e:
-        show_status("Failed to get locations")
-        raise SystemExit
+        show_status(f"Failed to get locations {e}")
+        time.sleep(3)
+        raise SystemExit(f"Failed to get locations {e}")
 except Exception as e:
-    print("An error occurred:", e)
-    show_status("OSM.N error:", e)
+    print(f"An error occurred: {e}")
+    show_status(f"OSM.N error: e")
     no_internet = True
 finally:
     try:
@@ -307,6 +309,7 @@ if not no_internet:
                 weather_data.append(data["current"])
                 last_updated_time = rtc.datetime()
             else:
+                show_status("failed fetching weather", {response.status_code})
                 raise SystemExit(
                     f"failed fetching weather with status {response.status_code}, {response.text}"
                 )
@@ -731,7 +734,7 @@ def update():
         try:
             fetch_weather()
         except Exception as e:
-            print("Refetch failed:", e)
+            print(f"Refetch failed: {e}")
             weather_data = old_weather_data
 
         fetching = False
