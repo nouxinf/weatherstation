@@ -8,6 +8,7 @@ import wifi
 import os
 from helpers import *
 from sensor_screen import *
+from internet_screen import *
 
 os.chdir(
     "/system/apps/weatherstation"
@@ -92,12 +93,12 @@ bme = None
 
 def init_i2c():
     try:
-        # timeout=50000 (50ms) prevents the hardware I2C from freezing the app
-        # if the sensor is partially inserted and SDA gets stuck low.
-        return I2C(timeout=50000)
+        return I2C(timeout=50000, freq=100000)
     except TypeError:
-        # fallback if the firmware's I2C wrapper doesn't accept kwargs
-        return I2C()
+        try:
+            return I2C(freq=100000)
+        except TypeError:
+            return I2C()
     except Exception:
         return I2C()
 
@@ -105,27 +106,12 @@ def init_i2c():
 # initialize the I2C bus ONCE globally to prevent hardware state machine lockups
 i2c = init_i2c()
 
-init_sensor(i2c)
+sensor_found = init_sensor(i2c)
 
-try:
-    bme = BreakoutBME280(i2c)
-    # gyro = LSM6DS3(i2c, mode=NORMAL_MODE_104HZ)
-    # ltr = BreakoutLTR559(i2c)
-except Exception:
-    no_multisensor = True
-else:
-    no_multisensor = False
-    last_read = 0
-    try:
-        readings = bme.read()
-    except Exception:
-        no_multisensor = True
-        bme = None
-
-if no_multisensor:
-    show_status("No multisensor found")
-else:
+if sensor_found:
     show_status("Multisensor found")
+else:
+    show_status("No multisensor found")
 
 """
 ╔════════════════════════════════════╗
@@ -170,7 +156,7 @@ try:
 except Exception as e:
     show_status(f"Failed to load options.json!! {e}")
     time.sleep(3)
-    raise SystemExit(f"Failed to load options.json!! {e}")
+    raise RuntimeError(f"Failed to load options.json!! {e}")
 show_status("Fetching locations...")
 
 """
@@ -278,7 +264,7 @@ try:
     except (KeyError, ValueError) as e:
         show_status(f"Failed to get locations {e}")
         time.sleep(3)
-        raise SystemExit(f"Failed to get locations {e}")
+        raise RuntimeError(f"Failed to get locations {e}")
 except Exception as e:
     print(f"An error occurred: {e}")
     show_status(f"OSM.N error: e")
@@ -318,8 +304,7 @@ if not no_internet:
                 weather_data.append(data["current"])
                 last_updated_time = rtc.datetime()
             else:
-                show_status("failed fetching weather", {response.status_code})
-                raise SystemExit(
+                raise RuntimeError(
                     f"failed fetching weather with status {response.status_code}, {response.text}"
                 )
         try:
@@ -361,7 +346,8 @@ def move_current_screen():
     elif up_now and not prev_up:
         current_screen = (current_screen - 1) % len(screens)
     elif a_now and not prev_a:
-        if not no_internet:
+        time.sleep_ms(50)
+        if badge.pressed(BUTTON_A) and not no_internet and not fetching:
             print("Refetching weather")
             fetching = True
 
@@ -422,106 +408,20 @@ def update():
         ║          INTERNET WEATHER          ║
         ╚════════════════════════════════════╝
         """
-        screen.font = YOLK_FONT
-        screen.pen = BACKGROUND_COLOR
-        screen.clear()
-        screen.pen = color.white
-        biggest_rectangle = shape.rounded_rectangle(5, 5, 150, 110, 10)
-        smaller_rectangle = shape.rounded_rectangle(7, 7, 146, 106, 10)
-        screen.shape(biggest_rectangle)
-        screen.pen = BACKGROUND_COLOR
-        screen.shape(smaller_rectangle)
-        screen.pen = WHITE
-        if not no_internet:
-            if nicknames[current_screen - 1] == None:
-                screen.text(
-                    f"{location_names[current_screen - 1]}",
-                    rect(35, 10, 100, 30),
-                    overflow=image.ELLIPSES,
-                )
-            else:
-                screen.text(
-                    f"{nicknames[current_screen - 1]}",
-                    rect(35, 10, 100, 30),
-                    overflow=image.ELLIPSES,
-                )
-            # screen.text(str(weather_data[current_screen - 1]["weather_code"]), 10, 10)
-            screen.blit(
-                sprites.sprite(
-                    weather_code_to_sprite(
-                        weather_data[current_screen - 1]["weather_code"]
-                    ),
-                    0,
-                ),
-                vec2(10, 10),
-            )
-            screen.blit(
-                sprites.sprite(
-                    temp_to_sprite(weather_data[current_screen - 1]["temperature_2m"]),
-                    0,
-                ),
-                vec2(7, 33),
-            )
-            screen.blit(
-                sprites.sprite(
-                    precipitation_to_sprite(
-                        weather_data[current_screen - 1]["precipitation"]
-                    ),
-                    0,
-                ),
-                vec2(7, 53),
-            )
-            screen.blit(
-                sprites.sprite(
-                    wind_direction_to_sprite(
-                        weather_data[current_screen - 1]["wind_direction_10m"]
-                    ),
-                    0,
-                ),
-                vec2(7, 73),
-            )
-            screen.font = VECTOR_FONT
-            if temp_unit == "F":
-                screen.text(
-                    f"{str(((weather_data[current_screen - 1]['temperature_2m']) * 1.8) + 32)}°F",
-                    30,
-                    30,
-                    20,
-                )
-            elif temp_unit == "K":
-                screen.text(
-                    f"{str((weather_data[current_screen - 1]['temperature_2m']) + 273.15)}°K",
-                    30,
-                    30,
-                    20,
-                )
-            else:
-                screen.text(
-                    f"{str(weather_data[current_screen - 1]['temperature_2m'])}°C",
-                    30,
-                    30,
-                    20,
-                )
-            screen.text(
-                f"{str(weather_data[current_screen - 1]['precipitation'])}mm",
-                30,
-                50,
-                20,
-            )
-            screen.text(
-                f"{str(weather_data[current_screen - 1]['wind_direction_10m'])}°",
-                30,
-                70,
-                20,
-            )
-            screen.font = YOLK_FONT
-            screen.text(
-                f"Last updated: {str(last_updated_time[3] + TIMEZONE):0>2}:{str(last_updated_time[4]):0>2}",
-                10,
-                90,
-            )
-        else:
-            screen.text("No internet", rect(35, 10, 100, 30))
+        internet_screen(
+            YOLK_FONT,
+            BACKGROUND_COLOR,
+            WHITE,
+            no_internet,
+            sprites,
+            nicknames,
+            current_screen,
+            location_names,
+            weather_data,
+            VECTOR_FONT,
+            last_updated_time,
+            temp_unit,
+        )
         # current screen / total screen count display
         screen.font = DESERT_FONT
         progress_text = f"{current_screen + 1}/{len(screens)}"
@@ -573,11 +473,11 @@ def update():
 
         try:
             fetch_weather()
-        except Exception as e:
+        except BaseException as e:
             print(f"Refetch failed: {e}")
             weather_data = old_weather_data
-
-        fetching = False
+        finally:
+            fetching = False
 
 
 run(update)

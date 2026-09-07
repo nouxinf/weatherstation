@@ -11,6 +11,7 @@ FILES_TO_TRANSFER = [
     "options.json",
     "helpers.py",
     "sensor_screen.py",
+    "internet_screen.py",
 ]
 DIRS_TO_TRANSFER = ["assets"]
 
