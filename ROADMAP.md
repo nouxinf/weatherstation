@@ -9,4 +9,4 @@
 - ~~Web editor for `options.json` through Flask or Bun (preferrably something self contained though)~~
 - Badge diagnostics page (maybe scrapped due to limitations?)
 - ~~Fork badgeware web simulator to work with weatherstation by adding proxy~~
-- Add attribution screen for openmeteo and OSM nominatim
+- ~~Add attribution screen for openmeteo and OSM nominatim~~

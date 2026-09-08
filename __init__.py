@@ -323,7 +323,7 @@ sprites = image.load("assets/spritesheet.png").spritesheet(
 )  # remember to update column count
 
 current_screen = 0
-screens = ["sensor"] + options.get("locations")
+screens = ["sensor"] + options.get("locations") + ["attribution"]
 print(screens)
 
 prev_down = False
@@ -395,6 +395,7 @@ def update():
     ╚════════════════════════════════════╝
     """
     if current_screen == 0:
+        badge.mode(LORES)
         sensor_loop(temp_unit, sprites, VECTOR_FONT, BACKGROUND_COLOR, WHITE)
         # current screen / total screen count display
         screen.font = DESERT_FONT
@@ -402,12 +403,13 @@ def update():
         screen.text(
             progress_text, rect(0, 100, 160, 10), align=(image.CENTER, image.MIDDLE)
         )
-    elif current_screen != 0 and current_screen <= len(screens):
+    elif current_screen != 0 and current_screen <= len(weather_data):
         """
         ╔════════════════════════════════════╗
         ║          INTERNET WEATHER          ║
         ╚════════════════════════════════════╝
         """
+        badge.mode(LORES)
         internet_screen(
             YOLK_FONT,
             BACKGROUND_COLOR,
@@ -427,6 +429,30 @@ def update():
         progress_text = f"{current_screen + 1}/{len(screens)}"
         screen.text(
             progress_text, rect(0, 100, 160, 10), align=(image.CENTER, image.MIDDLE)
+        )
+    elif screens[current_screen] == "attribution":
+        badge.mode(HIRES)
+        screen.pen = BACKGROUND_COLOR
+        screen.font = VECTOR_FONT
+        screen.clear()
+        screen.pen = color.white
+        biggest_rectangle = shape.rounded_rectangle(5, 5, 310, 230, 10)
+        smaller_rectangle = shape.rounded_rectangle(7, 7, 306, 226, 10)
+        screen.shape(biggest_rectangle)
+        screen.pen = BACKGROUND_COLOR
+        screen.shape(smaller_rectangle)
+        screen.pen = WHITE
+        screen.text("Attribution", 10, 10, 30)
+        screen.text(
+            "Weather data by Open-Meteo.com (https://open-meteo.com) \n Geocoding data (C) OpenStreetMap contributors (https://www.openstreetmap.org/\ncopyright)",
+            rect(10, 60, 300, 160),
+            20,
+        )
+        # current screen / total screen count display
+        # screen.font = DESERT_FONT
+        progress_text = f"{current_screen + 1}/{len(screens)}"
+        screen.text(
+            progress_text, rect(0, 215, 320, 15), 15, align=(image.CENTER, image.MIDDLE)
         )
     else:
         """

@@ -36,7 +36,9 @@ import sys
 import tempfile
 import platform
 
-W, H = 160, 120
+LORES_W, LORES_H = 160, 120
+HIRES_W, HIRES_H = 320, 240
+BYTES_PER_PIXEL = 4
 ROOT = os.path.join(os.path.dirname(os.path.abspath(__file__)), os.pardir)
 
 # Runs on the badge. `run` is normally the firmware's infinite app loop; it is
@@ -205,16 +207,25 @@ def main():
             mpremote_cmd + ["connect", p, "fs", "rm", ":/shot.raw"], capture_output=True
         )
 
-    expected = W * H * 4
-    if len(data) != expected:
-        sys.exit("got %d bytes, expected %d" % (len(data), expected))
-
     from PIL import Image
 
-    img = Image.frombytes("RGBA", (W, H), data)
-    # The panel is 320x240 showing a 160x120 buffer, so doubling is what the
-    # eye actually sees. Nearest keeps the pixel art crisp.
-    img.resize((W * 2, H * 2), Image.NEAREST).save(out)
+    lores_expected = LORES_W * LORES_H * BYTES_PER_PIXEL
+    hires_expected = HIRES_W * HIRES_H * BYTES_PER_PIXEL
+
+    if len(data) == lores_expected:
+        # Normal low-res badge mode: 160x120 framebuffer displayed scaled to 320x240.
+        img = Image.frombytes("RGBA", (LORES_W, LORES_H), data)
+        img = img.resize((HIRES_W, HIRES_H), Image.NEAREST)
+    elif len(data) == hires_expected:
+        # HIRES mode: framebuffer is already native 320x240.
+        img = Image.frombytes("RGBA", (HIRES_W, HIRES_H), data)
+    else:
+        sys.exit(
+            "got %d bytes, expected %d for LORES or %d for HIRES"
+            % (len(data), lores_expected, hires_expected)
+        )
+
+    img.save(out)
     print("wrote %s" % os.path.relpath(out, ROOT))
 
 
