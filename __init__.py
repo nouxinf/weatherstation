@@ -1,3 +1,14 @@
+import os
+import sys
+
+APP_DIR = "/system/apps/weatherstation"
+
+if APP_DIR not in sys.path:
+    sys.path.insert(0, APP_DIR)
+if "/" not in sys.path:
+    sys.path.insert(0, "/")
+os.chdir(APP_DIR)
+
 import time
 from machine import I2C
 from breakout_bme280 import BreakoutBME280
@@ -5,14 +16,10 @@ from lsm6ds3 import LSM6DS3, NORMAL_MODE_104HZ
 from breakout_ltr559 import BreakoutLTR559
 import json
 import wifi
-import os
+
 from helpers import *
 from sensor_screen import *
 from internet_screen import *
-
-os.chdir(
-    "/system/apps/weatherstation"
-)  # changes directory to app folder to work better with emulator
 
 try:
     import urequests as requests
