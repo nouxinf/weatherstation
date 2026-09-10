@@ -56,7 +56,7 @@ def vitals_loop(sprites, VECTOR_FONT, BACKGROUND_COLOR, WHITE, YOLK_FONT):
     screen.pen = color.rgb(66, 245, 81)  # bright green
     battery_rect = shape.rectangle(12, 42, battery_level, 6)
     screen.shape(battery_rect)
-    print(battery_level)
+    # print(battery_level)
 
     if badge.is_charging():
         screen.blit(sprites.sprite(66, 0), vec2(110, 36))
