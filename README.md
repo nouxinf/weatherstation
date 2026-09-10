@@ -33,6 +33,8 @@ The code loads options from `options.json`, currently only for which unit of mea
 
 Follow the guide at [the weatherstation website](https://weatherstation.nouxinf.net/install.html) for a step-by-step tutorial on how to isntall and configure weatherstation on real hardware. If you don't have a Tufty you can try it out at the [demo page](https://weatherstation.nouxinf.net/).
 
+You can find the source code for the badgeware simulator fork [here](https://github.com/nouxinf/weatherstation-simulator)
+
 ## Attribution
 
 Jerry Gamblin/jgamblin made the original version of `screenshot.py` which is licensed under the Apache License version 2.0. Extra modifications were added to it.
