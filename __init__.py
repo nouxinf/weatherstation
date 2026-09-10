@@ -411,7 +411,7 @@ def update():
         screen.text(
             progress_text, rect(0, 100, 160, 10), align=(image.CENTER, image.MIDDLE)
         )
-    elif current_screen != 0 and current_screen <= len(weather_data):
+    elif current_screen != 0 and current_screen <= len(options.get("locations")):
         """
         ╔════════════════════════════════════╗
         ║          INTERNET WEATHER          ║
