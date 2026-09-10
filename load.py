@@ -12,6 +12,7 @@ FILES_TO_TRANSFER = [
     "helpers.py",
     "sensor_screen.py",
     "internet_screen.py",
+    "vitals_screen.py",
 ]
 DIRS_TO_TRANSFER = ["assets"]
 

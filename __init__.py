@@ -20,6 +20,7 @@ import wifi
 from helpers import *
 from sensor_screen import *
 from internet_screen import *
+from vitals_screen import *
 
 try:
     import urequests as requests
@@ -326,11 +327,11 @@ if not no_internet:
 fetching = False
 
 sprites = image.load("assets/spritesheet.png").spritesheet(
-    65, 1
+    66, 1
 )  # remember to update column count
 
 current_screen = 0
-screens = ["sensor"] + options.get("locations") + ["attribution"]
+screens = ["sensor"] + options.get("locations") + ["vitals"] + ["attribution"]
 print(screens)
 
 prev_down = False
@@ -437,7 +438,22 @@ def update():
         screen.text(
             progress_text, rect(0, 100, 160, 10), align=(image.CENTER, image.MIDDLE)
         )
+    elif screens[current_screen] == "vitals":
+        badge.mode(LORES)
+        vitals_loop(sprites, VECTOR_FONT, BACKGROUND_COLOR, WHITE, YOLK_FONT)
+        # current screen / total screen count display
+        screen.pen = WHITE
+        screen.font = DESERT_FONT
+        progress_text = f"{current_screen + 1}/{len(screens)}"
+        screen.text(
+            progress_text, rect(0, 100, 160, 10), align=(image.CENTER, image.MIDDLE)
+        )
     elif screens[current_screen] == "attribution":
+        """
+        ╔════════════════════════════════════╗
+        ║          ATTRIBUTION INFO          ║
+        ╚════════════════════════════════════╝
+        """
         badge.mode(HIRES)
         screen.pen = BACKGROUND_COLOR
         screen.font = VECTOR_FONT
