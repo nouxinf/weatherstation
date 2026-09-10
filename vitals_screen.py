@@ -1,9 +1,15 @@
 import time
+from helpers import sizeof_fmt
+import gc
 
 
 def vitals_loop(sprites, VECTOR_FONT, BACKGROUND_COLOR, WHITE, YOLK_FONT):
     global battery_level, last_updated_battery_time, pending_level, pending_count
-
+    """
+    ╔════════════════════════════════════╗
+    ║              BATTERY               ║
+    ╚════════════════════════════════════╝
+    """
     try:
         battery_level
     except NameError:
@@ -57,3 +63,26 @@ def vitals_loop(sprites, VECTOR_FONT, BACKGROUND_COLOR, WHITE, YOLK_FONT):
     else:
         screen.pen = WHITE
         screen.text(f"{battery_level}%", 115, 37)
+    """
+    ╔════════════════════════════════════╗
+    ║             DISK SPACE             ║
+    ╚════════════════════════════════════╝
+    """
+    try:
+        ram_free
+    except NameError:
+        gc.collect()
+        ram_free = gc.mem_free()
+        last_updated_ram_time = time.ticks_ms()
+    if time.ticks_diff(time.ticks_ms(), last_updated_ram_time) >= 1000:
+        gc.collect()
+        ram_free = gc.mem_free()
+        last_updated_ram_time = time.ticks_ms()
+    screen.pen = WHITE
+    screen.text(
+        f"Flash space: {sizeof_fmt(badge.disk_free()[1])}/{sizeof_fmt(badge.disk_free()[0])}",
+        10,
+        50,
+        12,
+    )
+    screen.text(f"Free RAM: {sizeof_fmt(ram_free)}/8MiB")
