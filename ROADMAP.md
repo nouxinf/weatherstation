@@ -7,6 +7,6 @@
 - ~~Update weather every 10 minutes or on request~~
 - ~~Move functions out to other files (in progress)~~
 - ~~Web editor for `options.json` through Flask or Bun (preferrably something self contained though)~~
-- Badge diagnostics page (maybe scrapped due to limitations?)
+- ~~Badge diagnostics page~~
 - ~~Fork badgeware web simulator to work with weatherstation by adding proxy~~
 - ~~Add attribution screen for openmeteo and OSM nominatim~~
